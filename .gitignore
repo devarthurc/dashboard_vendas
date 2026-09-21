@@ -1,0 +1,8 @@
+target/
+out/
+*.class
+dependency-reduced-pom.xml
+config.properties
+config.properties.plain
+.idea/
+*.iml

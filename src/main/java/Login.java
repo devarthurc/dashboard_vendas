@@ -15,6 +15,7 @@ public class Login extends JFrame {
     private final String URL  = Config.getVendedoresUrl();
     private final String USER = Config.getVendedoresUser();
     private final String PASS = Config.getVendedoresPassword();
+    private final String LOJA = Config.getLoja();
 
     private JComboBox<String> comboUsuario = new JComboBox<>();
     private JPasswordField senha = new JPasswordField();
@@ -114,11 +115,16 @@ public class Login extends JFrame {
         senha.addActionListener(e -> logar());
     }
 
+    private String filtroLoja() {
+        return LOJA.isEmpty() ? "" : " AND (cdempresa = ? OR UPPER(tipo) = 'SUPERVISOR')";
+    }
+
     private void carregarUsuarios() {
         comboUsuario.removeAllItems();
         try (Connection conn = DriverManager.getConnection(URL, USER, PASS);
              PreparedStatement ps = conn.prepareStatement(
-                     "SELECT username FROM usuarios WHERE ativo = true ORDER BY username")) {
+                     "SELECT username FROM usuarios WHERE ativo = true" + filtroLoja() + " ORDER BY username")) {
+            if (!LOJA.isEmpty()) ps.setString(1, LOJA);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) comboUsuario.addItem(rs.getString("username"));
         } catch (Exception e) {
@@ -136,9 +142,10 @@ public class Login extends JFrame {
         try (Connection conn = DriverManager.getConnection(URL, USER, PASS);
              PreparedStatement ps = conn.prepareStatement(
                      "SELECT cdempresa, idpessoa, tipo, username, categoria FROM usuarios " +
-                             "WHERE username = ? AND senha = ? AND ativo = true")) {
+                             "WHERE username = ? AND senha = ? AND ativo = true" + filtroLoja())) {
             ps.setString(1, usuario);
             ps.setString(2, senhaDigitada);
+            if (!LOJA.isEmpty()) ps.setString(3, LOJA);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 String empresa    = rs.getString("cdempresa");

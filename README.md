@@ -8,7 +8,8 @@ uma tela diferente.
 
 - **Login:** autenticação com usuário e senha cadastrados no banco
   `controle_vendedores`. É o único ponto de entrada da aplicação e só aceita
-  usuários ativos.
+  usuários ativos. Se a loja estiver definida no `config.properties`, lista
+  apenas os usuários daquela loja e os supervisores, que enxergam todas.
 - **Dashboard:** painel de vendas do vendedor (cards, ranking e indicadores
   comparados às metas), com seleção de período por calendário e layout
   responsivo. Aberto para todos os perfis, exceto `SUPERVISOR`.
@@ -78,7 +79,9 @@ As credenciais não ficam no código-fonte. O programa lê um arquivo
 é executada.
 
 Para criá-lo, abra o gerador, informe host, porta, usuário, senha e o nome dos
-dois bancos, e salve:
+dois bancos, e salve. O campo **Loja** é opcional: preenchido com `001`,
+`002` ou `003`, o login mostra apenas os usuários daquela loja (mais os
+supervisores). Em branco, mostra todos os usuários.
 
 ```bash
 java -cp target/dashboard_vendas.jar GeradorConfig

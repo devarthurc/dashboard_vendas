@@ -23,11 +23,12 @@ public class GeradorConfig extends JFrame {
     private final JPasswordField campoSenha            = new JPasswordField(20);
     private final JTextField     campoBancoVendedores  = new JTextField(20);
     private final JTextField     campoBancoIshop       = new JTextField(20);
+    private final JTextField     campoLoja             = new JTextField(20);
     private final JLabel         lblStatus             = new JLabel(" ");
 
     public GeradorConfig() {
         setTitle("Gerador de Configuração — Dashboard Vendas");
-        setSize(480, 460);
+        setSize(480, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         getContentPane().setBackground(BG_DARK);
@@ -53,6 +54,7 @@ public class GeradorConfig extends JFrame {
         y = addLinha(form, gbc, y, "Senha:",                 campoSenha);
         y = addLinha(form, gbc, y, "Banco (vendedores):",    campoBancoVendedores);
         y = addLinha(form, gbc, y, "Banco (ishop):",         campoBancoIshop);
+        y = addLinha(form, gbc, y, "Loja (opcional):",       campoLoja);
 
         if (campoPorta.getText().isBlank()) campoPorta.setText("5432");
 
@@ -123,6 +125,7 @@ public class GeradorConfig extends JFrame {
             campoSenha.setText(props.getProperty("db.password", ""));
             campoBancoVendedores.setText(props.getProperty("db.vendedores.database", ""));
             campoBancoIshop.setText(props.getProperty("db.ishop.database", ""));
+            campoLoja.setText(props.getProperty("app.loja", ""));
 
             lblStatus.setText("Configuração existente carregada de \"" + ARQUIVO + "\". Altere e salve para atualizar.");
         } catch (Exception e) {
@@ -137,6 +140,7 @@ public class GeradorConfig extends JFrame {
         String senha            = new String(campoSenha.getPassword());
         String bancoVendedores  = campoBancoVendedores.getText().trim();
         String bancoIshop       = campoBancoIshop.getText().trim();
+        String loja             = campoLoja.getText().trim();
 
         if (host.isEmpty() || porta.isEmpty() || user.isEmpty() || senha.isEmpty()
                 || bancoVendedores.isEmpty() || bancoIshop.isEmpty()) {
@@ -153,6 +157,7 @@ public class GeradorConfig extends JFrame {
         props.setProperty("db.password", senha);
         props.setProperty("db.vendedores.database", bancoVendedores);
         props.setProperty("db.ishop.database", bancoIshop);
+        if (!loja.isEmpty()) props.setProperty("app.loja", loja);
 
         try {
             StringWriter sw = new StringWriter();

@@ -40,6 +40,11 @@ public final class Config {
 
 
 
+    public static String getLoja() {
+        String valor = props.getProperty("app.loja");
+        return valor == null ? "" : valor.trim();
+    }
+
     public static String getVendedoresUrl() {
         return "jdbc:postgresql://" + get("db.host") + ":" + get("db.port")
                 + "/" + get("db.vendedores.database");

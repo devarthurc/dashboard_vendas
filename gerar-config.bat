@@ -1,6 +1,5 @@
 @echo off
-REM Abre a tela de configuracao (GeradorConfig) usando o dashboard_vendas.jar
-REM que precisa estar na MESMA PASTA deste arquivo .bat.
+
 
 cd /d "%~dp0"
 

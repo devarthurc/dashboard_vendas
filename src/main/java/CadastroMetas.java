@@ -110,7 +110,15 @@ public class CadastroMetas extends JFrame {
         filtros.add(rotulo("🏪 Loja:")); filtros.add(estilizarCombo(comboLoja));
         filtros.add(rotulo("👥 Categoria:")); filtros.add(estilizarCombo(comboCategoria));
         JSeparator sep = new JSeparator(); sep.setForeground(BORDER_COLOR);
-        cab.add(titRow, BorderLayout.NORTH);
+        JButton btnVendasAux = botao("🧾  VENDAS AUXILIARES", ACCENT_ORANGE);
+        btnVendasAux.setToolTipText("Lançar/alterar vendas que substituem a comissão do Alterdata no Dashboard");
+        btnVendasAux.addActionListener(e -> new VendasAuxiliares(lojaUsuario).setVisible(true));
+        JPanel topo = new JPanel(new BorderLayout());
+        topo.setBackground(BG_DARK);
+        topo.add(titRow, BorderLayout.WEST);
+        topo.add(btnVendasAux, BorderLayout.EAST);
+
+        cab.add(topo, BorderLayout.NORTH);
         cab.add(filtros, BorderLayout.CENTER);
         cab.add(sep, BorderLayout.SOUTH);
         return cab;

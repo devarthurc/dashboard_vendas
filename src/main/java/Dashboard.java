@@ -1185,35 +1185,23 @@ public class Dashboard extends JFrame {
         return total;
     }
 
-    
-    
-    
-    private String getQuery(boolean filtroVendedor) {
+    private String getQueryVendaDiaria(boolean filtroVendedor) {
+        String filtro = filtroVendedor ? " AND ci.idpessoa = ? " : "";
         return """
             WITH comissao AS (
-                SELECT p.idpessoa, p.nmpessoa, SUM(ci.vlbasecomissao) AS total_comissao
+                SELECT p.idpessoa, p.nmpessoa, CAST(d.dtreferencia AS date) AS dia,
+                       SUM(ci.vlbasecomissao) AS total_comissao
                 FROM ishop.comitem ci
                 JOIN ishop.documen d ON d.iddocumento = ci.iddocumento
                 JOIN ishop.pessoas p ON p.idpessoa = ci.idpessoa
                 WHERE d.dtreferencia BETWEEN ? AND ?
                   AND COALESCE(d.stdocumentocancelado, '') <> '*'
                   AND ci.cdempvend = ?
-                  """ + (filtroVendedor ? " AND p.idpessoa = ? " : "") + """
-                GROUP BY p.idpessoa, p.nmpessoa
-            ),
-            documentos AS (
-                SELECT p.idpessoa, COUNT(DISTINCT d.iddocumento) AS total_clientes
-                FROM ishop.comitem ci
-                JOIN ishop.documen d ON d.iddocumento = ci.iddocumento
-                JOIN ishop.pessoas p ON p.idpessoa = ci.idpessoa
-                JOIN ishop.operaca o ON o.idoperacao = d.idoperacao
-                WHERE d.dtreferencia BETWEEN ? AND ?
-                  AND COALESCE(d.stdocumentocancelado, '') <> '*'
-                  AND o.nmoperacao NOT ILIKE '%ESTORNO%'
-                GROUP BY p.idpessoa
+                  """ + filtro + """
+                GROUP BY p.idpessoa, p.nmpessoa, CAST(d.dtreferencia AS date)
             ),
             itens AS (
-                SELECT ci.idpessoa,
+                SELECT ci.idpessoa, CAST(di.dtreferencia AS date) AS dia,
                        SUM(CASE WHEN di.tpoperacao = 'V' THEN di.qtitem ELSE -di.qtitem END) AS qt_itens
                 FROM ishop.comitem ci
                 JOIN ishop.docitem di ON ci.iddocitem = di.iddocumentoitem
@@ -1221,69 +1209,166 @@ public class Dashboard extends JFrame {
                   AND ci.cdempresa = ?
                   AND ci.cdempvend = ?
                   AND COALESCE(di.stdocumentocancelado, '') <> '*'
-                GROUP BY ci.idpessoa
+                  """ + filtro + """
+                GROUP BY ci.idpessoa, CAST(di.dtreferencia AS date)
             )
-            SELECT c.idpessoa, c.nmpessoa,
-                   ROUND(c.total_comissao::numeric, 2) AS total_comissao,
-                   COALESCE(i.qt_itens, 0) AS qt_itens,
-                   COALESCE(d.total_clientes, 0) AS total_clientes,
-                   ROUND((c.total_comissao::numeric / NULLIF(d.total_clientes,0)::numeric), 2) AS ticket_medio,
-                   ROUND((COALESCE(i.qt_itens,0)::numeric / NULLIF(d.total_clientes,0)::numeric)) AS produtos_por_cliente
+            SELECT COALESCE(c.idpessoa, i.idpessoa) AS idpessoa,
+                   c.nmpessoa,
+                   COALESCE(c.dia, i.dia)           AS dia,
+                   COALESCE(c.total_comissao, 0)    AS total_comissao,
+                   COALESCE(i.qt_itens, 0)          AS qt_itens,
+                   (c.idpessoa IS NOT NULL)         AS tem_comissao
             FROM comissao c
-            LEFT JOIN documentos d ON d.idpessoa = c.idpessoa
-            LEFT JOIN itens i ON i.idpessoa = c.idpessoa
-            ORDER BY c.total_comissao DESC
+            FULL JOIN itens i ON i.idpessoa = c.idpessoa AND i.dia = c.dia
             """;
     }
 
-    private Vendedor carregarResumo(java.sql.Date ini, java.sql.Date fim, String loja, String vend) {
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASS);
-             PreparedStatement ps = conn.prepareStatement(getQuery(true))) {
-            int i = 1;
-            ps.setDate(i++, ini); ps.setDate(i++, fim); ps.setString(i++, loja); ps.setString(i++, vend);
-            ps.setDate(i++, ini); ps.setDate(i++, fim);
-            ps.setDate(i++, ini); ps.setDate(i++, fim); ps.setString(i++, loja); ps.setString(i++, loja);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                Vendedor v = new Vendedor();
-                v.nome               = rs.getString("nmpessoa");
-                v.venda              = rs.getDouble("total_comissao");
-                v.ticket             = rs.getDouble("ticket_medio");
-                v.clientes           = rs.getInt("total_clientes");
-                v.produtos           = rs.getInt("qt_itens");
-                v.produtosPorCliente = rs.getDouble("produtos_por_cliente");
-                double[] d = buscarCustoEVenda(ini, fim, loja, vend);
-                v.margem = v.venda <= 0 ? 0 : ((v.venda - d[0]) / v.venda) * 100;
-                return v;
+    private String getQueryClientes(boolean filtroVendedor) {
+        return """
+            SELECT p.idpessoa, CAST(d.dtreferencia AS date) AS dia,
+                   COUNT(DISTINCT d.iddocumento) AS total_clientes
+            FROM ishop.comitem ci
+            JOIN ishop.documen d ON d.iddocumento = ci.iddocumento
+            JOIN ishop.pessoas p ON p.idpessoa = ci.idpessoa
+            JOIN ishop.operaca o ON o.idoperacao = d.idoperacao
+            WHERE d.dtreferencia BETWEEN ? AND ?
+              AND COALESCE(d.stdocumentocancelado, '') <> '*'
+              AND o.nmoperacao NOT ILIKE '%ESTORNO%'
+              """ + (filtroVendedor ? " AND p.idpessoa = ? " : "") + """
+            GROUP BY p.idpessoa, CAST(d.dtreferencia AS date)
+            """;
+    }
+
+
+    private static class VendaMesclada {
+        String id, nome;
+        boolean temComissaoAlterdata;
+        boolean temAuxiliar;
+        double  vendaAlterdataOriginal;
+        final java.util.Map<java.time.LocalDate, double[]> sistema  = new java.util.HashMap<>();
+        final java.util.Map<java.time.LocalDate, double[]> auxiliar = new java.util.HashMap<>();
+    }
+
+    private List<Vendedor> carregarVendas(java.sql.Date ini, java.sql.Date fim, String loja, String vend) {
+        boolean filtro = vend != null;
+        java.util.Map<String, VendaMesclada> mapa = new java.util.LinkedHashMap<>();
+
+        java.util.Map<String, java.util.Map<java.time.LocalDate, Integer>> clientesSistema = new java.util.HashMap<>();
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASS)) {
+            try (PreparedStatement ps = conn.prepareStatement(getQueryVendaDiaria(filtro))) {
+                int i = 1;
+                ps.setDate(i++, ini); ps.setDate(i++, fim); ps.setString(i++, loja);
+                if (filtro) ps.setString(i++, vend);
+                ps.setDate(i++, ini); ps.setDate(i++, fim); ps.setString(i++, loja); ps.setString(i++, loja);
+                if (filtro) ps.setString(i++, vend);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    String id = rs.getString("idpessoa");
+                    VendaMesclada m = mapa.computeIfAbsent(id, k -> { VendaMesclada n = new VendaMesclada(); n.id = k; return n; });
+                    if (rs.getString("nmpessoa") != null) m.nome = rs.getString("nmpessoa");
+                    if (rs.getBoolean("tem_comissao")) m.temComissaoAlterdata = true;
+                    double venda = rs.getDouble("total_comissao");
+                    m.vendaAlterdataOriginal += venda;
+                    m.sistema.merge(rs.getDate("dia").toLocalDate(),
+                            new double[]{venda, rs.getDouble("qt_itens")},
+                            (a, b) -> new double[]{a[0] + b[0], a[1] + b[1]});
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(getQueryClientes(filtro))) {
+                ps.setDate(1, ini); ps.setDate(2, fim);
+                if (filtro) ps.setString(3, vend);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    clientesSistema.computeIfAbsent(rs.getString("idpessoa"), k -> new java.util.HashMap<>())
+                            .merge(rs.getDate("dia").toLocalDate(), rs.getInt("total_clientes"), Integer::sum);
+                }
             }
         } catch (Exception e) { JOptionPane.showMessageDialog(this, e.getMessage()); }
-        return null;
+
+        String sqlAux = "SELECT idpessoa, data_venda, SUM(valor_vendido) AS venda, "
+                + "SUM(quantidade_produtos) AS qtd, SUM(clientes) AS clientes FROM public.vendas_auxiliar "
+                + "WHERE cdempresa = ? AND data_venda BETWEEN ? AND ?"
+                + (filtro ? " AND idpessoa = ?" : "")
+                + " GROUP BY idpessoa, data_venda";
+        try (Connection conn = DriverManager.getConnection(URL_LOGIN, USER_LOGIN, PASS_LOGIN);
+             PreparedStatement ps = conn.prepareStatement(sqlAux)) {
+            ps.setString(1, loja); ps.setDate(2, ini); ps.setDate(3, fim);
+            if (filtro) ps.setString(4, vend);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                String id = rs.getString("idpessoa");
+                VendaMesclada m = mapa.computeIfAbsent(id, k -> { VendaMesclada n = new VendaMesclada(); n.id = k; return n; });
+                m.temAuxiliar = true;
+                m.auxiliar.put(rs.getDate("data_venda").toLocalDate(),
+                        new double[]{rs.getDouble("venda"), rs.getDouble("qtd"), rs.getDouble("clientes")});
+            }
+        } catch (Exception ignored) { }
+
+        java.util.List<String> semNome = new ArrayList<>();
+        for (VendaMesclada m : mapa.values()) if (m.nome == null && m.temAuxiliar) semNome.add(m.id);
+        if (!semNome.isEmpty()) {
+            try (Connection conn = DriverManager.getConnection(URL, USER, PASS);
+                 PreparedStatement ps = conn.prepareStatement(
+                         "SELECT idpessoa, nmpessoa FROM ishop.pessoas WHERE idpessoa = ANY (?)")) {
+                ps.setArray(1, conn.createArrayOf("varchar", semNome.toArray()));
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    VendaMesclada m = mapa.get(rs.getString("idpessoa"));
+                    if (m != null) m.nome = rs.getString("nmpessoa");
+                }
+            } catch (Exception ignored) { }
+        }
+
+        List<Vendedor> lista = new ArrayList<>();
+        for (VendaMesclada m : mapa.values()) {
+            if (!m.temComissaoAlterdata && !m.temAuxiliar) continue;
+
+            java.util.Map<java.time.LocalDate, Integer> cliSis =
+                    clientesSistema.getOrDefault(m.id, java.util.Collections.emptyMap());
+            java.util.Set<java.time.LocalDate> dias = new java.util.HashSet<>(m.sistema.keySet());
+            dias.addAll(m.auxiliar.keySet());
+            dias.addAll(cliSis.keySet());
+            double venda = 0, qtd = 0;
+            int nClientes = 0;
+            for (java.time.LocalDate dia : dias) {
+                double[] aux = m.auxiliar.get(dia);
+                if (aux != null) {
+                    venda     += aux[0];
+                    qtd       += aux[1];
+                    nClientes += (int) Math.round(aux[2]);
+                } else {
+                    double[] sis = m.sistema.get(dia);
+                    if (sis != null) { venda += sis[0]; qtd += sis[1]; }
+                    nClientes += cliSis.getOrDefault(dia, 0);
+                }
+            }
+
+            Vendedor v = new Vendedor();
+            v.id                 = m.id;
+            v.nome               = m.nome != null ? m.nome : m.id;
+            v.venda              = Math.round(venda * 100.0) / 100.0;
+            v.produtos           = (int) Math.round(qtd);
+            v.clientes           = nClientes;
+            v.ticket             = v.clientes > 0 ? Math.round(v.venda / v.clientes * 100.0) / 100.0 : 0;
+            v.produtosPorCliente = v.clientes > 0 ? Math.round((double) v.produtos / v.clientes) : 0;
+
+            double[] d = buscarCustoEVenda(ini, fim, loja, m.id);
+            double base = m.vendaAlterdataOriginal;
+            v.margem = base <= 0 ? 0 : ((base - d[0]) / base) * 100;
+            lista.add(v);
+        }
+        lista.sort((a, b) -> Double.compare(b.venda, a.venda));
+        return lista;
+    }
+
+    private Vendedor carregarResumo(java.sql.Date ini, java.sql.Date fim, String loja, String vend) {
+        List<Vendedor> l = carregarVendas(ini, fim, loja, vend);
+        return l.isEmpty() ? null : l.get(0);
     }
 
     private List<Vendedor> carregarRanking(java.sql.Date ini, java.sql.Date fim, String loja) {
-        List<Vendedor> lista = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASS);
-             PreparedStatement ps = conn.prepareStatement(getQuery(false))) {
-            int i = 1;
-            ps.setDate(i++, ini); ps.setDate(i++, fim); ps.setString(i++, loja);
-            ps.setDate(i++, ini); ps.setDate(i++, fim);
-            ps.setDate(i++, ini); ps.setDate(i++, fim); ps.setString(i++, loja); ps.setString(i++, loja);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                Vendedor v = new Vendedor();
-                v.id                 = rs.getString("idpessoa");
-                v.nome               = rs.getString("nmpessoa");
-                v.venda              = rs.getDouble("total_comissao");
-                v.ticket             = rs.getDouble("ticket_medio");
-                v.clientes           = rs.getInt("total_clientes");
-                v.produtos           = rs.getInt("qt_itens");
-                v.produtosPorCliente = rs.getDouble("produtos_por_cliente");
-                double[] d = buscarCustoEVenda(ini, fim, loja, v.id);
-                v.margem = v.venda <= 0 ? 0 : ((v.venda - d[0]) / v.venda) * 100;
-                lista.add(v);
-            }
-        } catch (Exception e) { JOptionPane.showMessageDialog(this, e.getMessage()); }
-        return lista;
+        return carregarVendas(ini, fim, loja, null);
     }
 
     private double[] buscarCustoEVenda(java.sql.Date ini, java.sql.Date fim, String loja, String vendedor) {

@@ -16,6 +16,14 @@ uma tela diferente.
 - **Cadastro de metas:** tela exclusiva do perfil `SUPERVISOR`, para cadastrar
   metas de venda e de indicadores (ticket médio, clientes, produtos,
   produtos por cliente e margem) por empresa e categoria.
+- **Vendas auxiliares:** tela aberta pelo botão *🧾 VENDAS AUXILIARES* no
+  Cadastro de Metas. Permite lançar, alterar, excluir e importar (colando do
+  Excel ou abrindo o `.xlsx`) vendas na tabela `vendas_auxiliar`. Para cada
+  vendedor + loja + dia, se houver lançamento nessa tabela, o Dashboard usa
+  esse valor (e a quantidade de produtos) no lugar da comissão do Alterdata;
+  se não houver, continua usando o Alterdata. A tabela nunca é preenchida
+  automaticamente. A aba *Resumo por dia* mostra, dia a dia, qual fonte está
+  sendo usada.
 - **Gerador de configuração:** ferramenta gráfica que cria o arquivo de
   credenciais cifrado.
 
@@ -45,6 +53,8 @@ dashboard_vendas/
     ├── Login.java
     ├── Dashboard.java
     ├── CadastroMetas.java
+    ├── VendasAuxiliares.java
+    ├── XlsxLeitor.java
     ├── Vendedor.java
     ├── Config.java
     ├── CryptoUtil.java
@@ -62,7 +72,8 @@ psql -U SEU_USUARIO -f sql/controle_vendedores.sql
 ```
 
 O script cria o banco `controle_vendedores` e as tabelas `usuarios`, `metas`,
-`metas_venda`, `metas_indicadores`, `qtd_vendedores` e `config_dashboard`.
+`metas_venda`, `metas_indicadores`, `qtd_vendedores`, `config_dashboard` e
+`vendas_auxiliar`.
 
 ### 2. Compilar
 

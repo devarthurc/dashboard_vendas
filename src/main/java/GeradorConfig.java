@@ -28,6 +28,7 @@ public class GeradorConfig extends JFrame {
 
     public GeradorConfig() {
         setTitle("Gerador de Configuração — Dashboard Vendas");
+        Icone.aplicar(this);
         setSize(480, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

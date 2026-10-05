@@ -67,7 +67,8 @@ public class CadastroMetas extends JFrame {
     public CadastroMetas(String tipo, String loja) {
         this.tipoUsuario = tipo != null ? tipo : "SUPERVISOR";
         this.lojaUsuario = loja;
-        setTitle("📋  CADASTRO DE METAS — " + tipoUsuario);
+        setTitle("CADASTRO DE METAS — " + tipoUsuario);
+        Icone.aplicar(this);
         setSize(980, 700);
         setLocationRelativeTo(null);
         if (Toolkit.getDefaultToolkit().isFrameStateSupported(JFrame.MAXIMIZED_BOTH)) setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -112,13 +113,13 @@ public class CadastroMetas extends JFrame {
         filtros.add(rotulo("🏪 Loja:")); filtros.add(estilizarCombo(comboLoja));
         filtros.add(rotulo("👥 Categoria:")); filtros.add(estilizarCombo(comboCategoria));
         JSeparator sep = new JSeparator(); sep.setForeground(BORDER_COLOR);
-        JButton btnVendasAux = botao("🧾  VENDAS AUXILIARES", ACCENT_ORANGE);
+        JButton btnVendasAux = botao("VENDAS AUXILIARES", ACCENT_ORANGE);
         btnVendasAux.setToolTipText("Lançar/alterar vendas que substituem a comissão do Alterdata no Dashboard");
         btnVendasAux.addActionListener(e -> new VendasAuxiliares(lojaUsuario).setVisible(true));
         JPanel topo = new JPanel(new BorderLayout());
         topo.setBackground(BG_DARK);
         topo.add(titRow, BorderLayout.WEST);
-        JButton btnCadVendedor = botao("👤  CADASTRAR VENDEDOR", ACCENT_BLUE);
+        JButton btnCadVendedor = botao("CADASTRAR VENDEDOR", ACCENT_BLUE);
         btnCadVendedor.addActionListener(e -> new CadastroVendedor(lojaUsuario).setVisible(true));
         JPanel botoesTopo = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         botoesTopo.setBackground(BG_DARK);

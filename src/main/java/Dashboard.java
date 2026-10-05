@@ -103,6 +103,7 @@ public class Dashboard extends JFrame {
 
     private Dashboard() {
         setTitle("ANÁLISE DE VENDAS POR VENDEDOR");
+        Icone.aplicar(this);
         setSize(1400, 900);
         setMinimumSize(new Dimension(1000, 650));
         setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -1185,6 +1186,9 @@ public class Dashboard extends JFrame {
         return total;
     }
 
+    
+    
+    
     private String getQueryVendaDiaria(boolean filtroVendedor) {
         String filtro = filtroVendedor ? " AND ci.idpessoa = ? " : "";
         return """
@@ -1239,7 +1243,6 @@ public class Dashboard extends JFrame {
             """;
     }
 
-
     private static class VendaMesclada {
         String id, nome;
         boolean temComissaoAlterdata;
@@ -1252,7 +1255,6 @@ public class Dashboard extends JFrame {
     private List<Vendedor> carregarVendas(java.sql.Date ini, java.sql.Date fim, String loja, String vend) {
         boolean filtro = vend != null;
         java.util.Map<String, VendaMesclada> mapa = new java.util.LinkedHashMap<>();
-
         java.util.Map<String, java.util.Map<java.time.LocalDate, Integer>> clientesSistema = new java.util.HashMap<>();
 
         try (Connection conn = DriverManager.getConnection(URL, USER, PASS)) {

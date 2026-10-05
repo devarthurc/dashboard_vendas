@@ -22,6 +22,7 @@ public class Login extends JFrame {
 
     public Login() {
         setTitle("Entrar");
+        Icone.aplicar(this);
         setSize(420, 340);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);

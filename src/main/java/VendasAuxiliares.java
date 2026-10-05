@@ -15,7 +15,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 
-
 public class VendasAuxiliares extends JFrame {
 
     private static final Color BG_DARK        = new Color(10, 14, 23);
@@ -38,10 +37,8 @@ public class VendasAuxiliares extends JFrame {
     private static final DateTimeFormatter BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final String[] LOJAS = {"001", "002", "003"};
 
-
     private static final String[] COLUNAS_PADRAO =
             {"quantidade_produtos", "idpessoa", "cdempresa", "valor_vendido", "data_venda", "clientes"};
-
     private static final String[] COLUNAS_OBRIGATORIAS =
             {"quantidade_produtos", "idpessoa", "cdempresa", "valor_vendido", "data_venda"};
 
@@ -56,12 +53,10 @@ public class VendasAuxiliares extends JFrame {
             java.text.DecimalFormatSymbols.getInstance(new Locale("pt", "BR")));
     private final String lojaFixa;
 
-
     private final JComboBox<String>   comboLoja   = new JComboBox<>(LOJAS);
     private final JComboBox<Vendedor> comboFiltroVend = new JComboBox<>();
     private final JFormattedTextField dtIni = criarCampoData(LocalDate.now().withDayOfMonth(1).format(BR));
     private final JFormattedTextField dtFim = criarCampoData(LocalDate.now().format(BR));
-
 
     private DefaultTableModel modelLanc;
     private JTable tabelaLanc;
@@ -75,21 +70,19 @@ public class VendasAuxiliares extends JFrame {
     private final JTextField campoClientes = new JTextField("0", 4);
     private final JLabel lblModo = new JLabel();
 
-
     private JTextArea areaCola;
-
 
     private DefaultTableModel modelResumo;
     private final JLabel lblTotalResumo = new JLabel(" ");
 
     private JTabbedPane abas;
 
-
     private final Map<String, String> nomes = new HashMap<>();
 
     public VendasAuxiliares(String lojaFixa) {
         this.lojaFixa = (lojaFixa == null || lojaFixa.isBlank()) ? null : lojaFixa.trim();
-        setTitle("🧾  VENDAS AUXILIARES");
+        setTitle("VENDAS AUXILIARES");
+        Icone.aplicar(this);
         setSize(1180, 740);
         setMinimumSize(new Dimension(980, 600));
         setLocationRelativeTo(null);
@@ -121,7 +114,6 @@ public class VendasAuxiliares extends JFrame {
         buscar();
     }
 
-
     private void garantirTabela() {
         try (Connection conn = DriverManager.getConnection(URL, USER, PASS);
              Statement st = conn.createStatement()) {
@@ -143,7 +135,6 @@ public class VendasAuxiliares extends JFrame {
                     + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     private JPanel criarCabecalho() {
         JPanel cab = new JPanel(new BorderLayout(0, 8));
@@ -222,7 +213,6 @@ public class VendasAuxiliares extends JFrame {
 
     private String nomeDe(String id) { return nomes.getOrDefault(id, id); }
 
-
     private JPanel criarAbaLancamentos() {
         JPanel p = new JPanel(new BorderLayout(0, 10));
         p.setBackground(BG_PANEL); p.setBorder(new EmptyBorder(12, 16, 12, 16));
@@ -275,7 +265,6 @@ public class VendasAuxiliares extends JFrame {
         JPanel painel = new JPanel(new BorderLayout(0, 8));
         painel.setBackground(BG_PANEL);
 
-
         estilizarCampo(campoData); estilizarCampo(campoQtd); estilizarCampo(campoValor); estilizarCampo(campoClientes);
         campoClientes.setToolTipText("Clientes do vendedor no dia. Informe em UMA linha do dia e deixe 0 nas demais.");
         estilizarComboVend(comboVendForm, 230);
@@ -307,7 +296,6 @@ public class VendasAuxiliares extends JFrame {
         btnSalvar.addActionListener(e -> salvarLancamento());
         btnExcluir.addActionListener(e -> excluirSelecionados());
         btnExcluirFiltro.addActionListener(e -> excluirFiltro());
-
 
         modelLanc = new DefaultTableModel(new String[]{"ID", "Data", "Loja", "Vendedor", "ID Pessoa", "Qtd", "Valor", "Clientes"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -406,7 +394,6 @@ public class VendasAuxiliares extends JFrame {
         for (int i = 0; i < combo.getItemCount(); i++) {
             if (Objects.equals(combo.getItemAt(i).id, id)) { combo.setSelectedIndex(i); return; }
         }
-
         Vendedor v = vend(id, id + "  (fora da lista de ativos)");
         combo.addItem(v); combo.setSelectedItem(v);
     }
@@ -484,7 +471,6 @@ public class VendasAuxiliares extends JFrame {
         buscar();
     }
 
-
     private void importarArquivo() {
         JFileChooser fc = new JFileChooser();
         fc.setFileFilter(new FileNameExtensionFilter("Planilha Excel (*.xlsx)", "xlsx"));
@@ -511,10 +497,8 @@ public class VendasAuxiliares extends JFrame {
 
     private record Linha(String idpessoa, String loja, LocalDate data, int qtd, double valor, int clientes) {}
 
-
     private boolean importar(List<List<String>> linhas, String origem) {
         if (linhas.isEmpty()) { JOptionPane.showMessageDialog(this, "Nenhuma linha encontrada."); return false; }
-
 
         Map<String, Integer> col = new HashMap<>();
         List<String> primeira = linhas.get(0);
@@ -529,7 +513,6 @@ public class VendasAuxiliares extends JFrame {
             JOptionPane.showMessageDialog(this, "Cabeçalho incompleto. Colunas esperadas:\n" + String.join(", ", COLUNAS_PADRAO));
             return false;
         } else for (int i = 0; i < COLUNAS_PADRAO.length; i++) col.put(COLUNAS_PADRAO[i], i);
-
         if (inicio == 0 && primeira.size() < COLUNAS_PADRAO.length) col.remove("clientes");
         boolean temClientes = col.containsKey("clientes");
 
@@ -561,7 +544,6 @@ public class VendasAuxiliares extends JFrame {
         if (ok.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Nenhuma linha válida.\n\n" + erros); return false;
         }
-
 
         Set<String> grupos = new TreeSet<>();
         Set<String> lojas = new TreeSet<>();
@@ -631,7 +613,6 @@ public class VendasAuxiliares extends JFrame {
         }
         JOptionPane.showMessageDialog(this, "✅ " + ok.size() + " linha(s) importada(s).");
 
-
         if (lojaFixa == null && lojas.size() == 1) comboLoja.setSelectedItem(lojas.iterator().next());
         dtIni.setValue(null); dtIni.setText(min.format(BR));
         dtFim.setValue(null); dtFim.setText(max.format(BR));
@@ -656,7 +637,6 @@ public class VendasAuxiliares extends JFrame {
         if (idx == null || idx >= l.size()) throw new Exception("coluna faltando");
         return l.get(idx) == null ? "" : l.get(idx);
     }
-
 
     private JPanel criarAbaResumo() {
         JPanel p = new JPanel(new BorderLayout(0, 8));
@@ -703,7 +683,6 @@ public class VendasAuxiliares extends JFrame {
         LocalDate ini = lerData(dtIni), fim = lerData(dtFim);
         if (ini == null || fim == null) { lblTotalResumo.setText("Informe o período."); return; }
         String loja = lojaAtual(), vend = vendedorFiltro();
-
 
         Map<String, Double> sistema = new TreeMap<>(), auxiliar = new TreeMap<>();
         Map<String, String> nomesAlterdata = new HashMap<>();
@@ -763,14 +742,12 @@ public class VendasAuxiliares extends JFrame {
                 + " (" + diasAux + " vendedor/dia)   •   Usado no Dashboard: R$ " + df.format(tUsado));
     }
 
-
     static double numero(String s) {
         String t = s == null ? "" : s.replace("R$", "").replace("\u00A0", "").replace(" ", "").trim();
         if (t.isEmpty()) return 0;
         if (t.contains(",")) t = t.replace(".", "").replace(",", ".");
         return Double.parseDouble(t);
     }
-
 
     static String normalizarLoja(String s) throws Exception {
         String t = s == null ? "" : s.trim();
@@ -779,7 +756,6 @@ public class VendasAuxiliares extends JFrame {
         if (t.matches("\\d+") && t.length() < 3) t = "0".repeat(3 - t.length()) + t;
         return t;
     }
-
 
     static LocalDate parseDataFlex(String s) throws Exception {
         String t = s == null ? "" : s.trim();
@@ -799,7 +775,6 @@ public class VendasAuxiliares extends JFrame {
     private static LocalDate lerData(JFormattedTextField f) {
         try { return LocalDate.parse(f.getText().trim(), BR); } catch (Exception e) { return null; }
     }
-
 
     private DefaultTableCellRenderer rendererData() {
         return new DefaultTableCellRenderer() {

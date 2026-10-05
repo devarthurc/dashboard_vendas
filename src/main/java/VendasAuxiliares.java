@@ -67,7 +67,6 @@ public class VendasAuxiliares extends JFrame {
     private JTable tabelaLanc;
     private final JLabel lblTotalLanc = new JLabel(" ");
 
-
     private Integer idEmEdicao = null;
     private final JFormattedTextField campoData  = criarCampoData("");
     private final JComboBox<Vendedor> comboVendForm = new JComboBox<>();
@@ -94,6 +93,8 @@ public class VendasAuxiliares extends JFrame {
         setSize(1180, 740);
         setMinimumSize(new Dimension(980, 600));
         setLocationRelativeTo(null);
+        if (Toolkit.getDefaultToolkit().isFrameStateSupported(JFrame.MAXIMIZED_BOTH)) setExtendedState(JFrame.MAXIMIZED_BOTH);
+        else setBounds(GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds());
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         getContentPane().setBackground(BG_DARK);
         setLayout(new BorderLayout());
@@ -142,6 +143,7 @@ public class VendasAuxiliares extends JFrame {
                     + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
     private JPanel criarCabecalho() {
         JPanel cab = new JPanel(new BorderLayout(0, 8));
@@ -219,6 +221,7 @@ public class VendasAuxiliares extends JFrame {
     }
 
     private String nomeDe(String id) { return nomes.getOrDefault(id, id); }
+
 
     private JPanel criarAbaLancamentos() {
         JPanel p = new JPanel(new BorderLayout(0, 10));

@@ -70,6 +70,8 @@ public class CadastroMetas extends JFrame {
         setTitle("📋  CADASTRO DE METAS — " + tipoUsuario);
         setSize(980, 700);
         setLocationRelativeTo(null);
+        if (Toolkit.getDefaultToolkit().isFrameStateSupported(JFrame.MAXIMIZED_BOTH)) setExtendedState(JFrame.MAXIMIZED_BOTH);
+        else setBounds(GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds());
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         getContentPane().setBackground(BG_DARK);
         setLayout(new BorderLayout());
@@ -116,7 +118,13 @@ public class CadastroMetas extends JFrame {
         JPanel topo = new JPanel(new BorderLayout());
         topo.setBackground(BG_DARK);
         topo.add(titRow, BorderLayout.WEST);
-        topo.add(btnVendasAux, BorderLayout.EAST);
+        JButton btnCadVendedor = botao("👤  CADASTRAR VENDEDOR", ACCENT_BLUE);
+        btnCadVendedor.addActionListener(e -> new CadastroVendedor(lojaUsuario).setVisible(true));
+        JPanel botoesTopo = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        botoesTopo.setBackground(BG_DARK);
+        botoesTopo.add(btnCadVendedor);
+        botoesTopo.add(btnVendasAux);
+        topo.add(botoesTopo, BorderLayout.EAST);
 
         cab.add(topo, BorderLayout.NORTH);
         cab.add(filtros, BorderLayout.CENTER);
